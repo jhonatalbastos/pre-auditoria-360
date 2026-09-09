@@ -265,33 +265,7 @@ async function saveEvidenceFile(file,testId,evidenceId){
 function saveConfig(){state.config={...state.config,cnpj:val('cfgCnpj'),cnd:val('cfgCnd'),transp:val('cfgTransp'),transferegov:val('cfgTransfere'),fgts:val('cfgFgts'),cndt:val('cfgCndt'),autoBackup:val('autoBackup'),backupMode:val('backupMode'),backupKeep:Number(val('backupKeep')||20),autoSave:val('autoSave'),snapshotConsultas:val('snapshotConsultas'),keepRaw:val('keepRaw')};sbSaveState();renderFolderStatus();toast('Configurações salvas no Supabase.');}
 function updateMetrics(){let done=tests.filter(t=>['OK','N/A'].includes(state.tests[t.id].status)).length;let risks=tests.filter(t=>calcRisk({...t,...state.tests[t.id]})>=2.75).length;let totalWeight=tests.reduce((s,t)=>s+calcRisk({...t,...state.tests[t.id]}),0);let achieved=tests.reduce((s,t)=>s+(state.tests[t.id].status==='OK'?calcRisk({...t,...state.tests[t.id]}):state.tests[t.id].status==='N/A'?0:0),0);let readiness=totalWeight?Math.round(achieved/totalWeight*100):0;document.getElementById('mDone').textContent=done;document.getElementById('mDonePct').textContent=Math.round(done/tests.length*100)+'%';document.getElementById('mRisk').textContent=risks;document.getElementById('mReady').textContent=readiness+'%';let by=areas.map(([code,name])=>{let ar=tests.filter(t=>t.area===code),avg=ar.reduce((s,t)=>s+calcRisk({...t,...state.tests[t.id]}),0)/ar.length;return {code,name,avg}});document.getElementById('areaRisk').innerHTML=by.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${x.code} — ${x.name}</span><b>${x.avg.toFixed(1)} / 4</b></div><div class="riskbar"><i style="width:${x.avg/4*100}%"></i></div></div>`).join('');document.getElementById('entitySummary').innerHTML=state.entity.cnpj?`<b>${escapeHtml(state.entity.razao||'Organização ainda não consultada')}</b><br>CNPJ: ${escapeHtml(state.entity.cnpj)}<br>${escapeHtml(state.entity.municipio||'')} / ${escapeHtml(state.entity.uf||'')}`:'Nenhuma organização carregada';document.getElementById('healthSummary').innerHTML=`${done} de ${tests.length} testes concluídos.<br>${risks} testes em risco alto/crítico.<br>${state.findings.length} achados • ${state.actions.length} ações • ${state.retests.length} re-testes.`}
 function renderReport(){let critical=tests.filter(t=>riskLabel(calcRisk({...t,...state.tests[t.id]}))==='Crítico');document.getElementById('reportPreview').innerHTML=`<h3>Relatório de Pré-Auditoria</h3><p><b>${escapeHtml(state.entity.razao||'Organização')}</b> — CNPJ ${escapeHtml(state.entity.cnpj||'')}</p><p>Data de geração: ${new Date().toLocaleString('pt-BR')}</p><hr><p><b>Testes:</b> ${tests.length} • <b>Concluídos:</b> ${tests.filter(t=>['OK','N/A'].includes(state.tests[t.id].status)).length} • <b>Achados:</b> ${state.findings.length} • <b>Riscos críticos:</b> ${critical.length}</p><h4>Riscos críticos</h4>${critical.slice(0,20).map(t=>`<p>• <b>${t.id}</b> — ${escapeHtml(t.q)}</p>`).join('')||'<p>Nenhum risco crítico no estado atual.</p>'}<h4>Consultas externas</h4>${consults.map(c=>`<p>• ${c.name}: <b>${state.consultResults[c.id]?.status||'Não executado'}</b></p>`).join('')}`}
-function printReport(){renderReport();let w=window.open('','_blank');w.document.write(`<html><head><title>Pré-Auditoria 360 — Relatório</title><style>body{font-family:Arial;padding:30px;line-height:1.5}h1{font-size:22px}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-#sbAuth{position:fixed;inset:0;background:#17212bdd;z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}
-#sbAuthBox{width:min(440px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 20px 60px #0004}
-#sbAuthBox h2{margin:0 0 6px;color:#24384d}#sbAuthBox p{color:#647181;font-size:13px;line-height:1.45}
-#sbAuthBox .sb-status{padding:10px;border-radius:9px;background:#f3f7fa;font-size:12px;margin-top:12px}
-#sbConnection{position:fixed;bottom:16px;left:16px;z-index:80;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:11px;box-shadow:var(--shadow);cursor:pointer}
-#sbConnection.ok{color:#1f7a4d}#sbConnection.warn{color:#a56a00}
-</style>
-</head><body>
-<div id="sbAuth">
-  <div id="sbAuthBox">
-    <h2>Pré-Auditoria 360º</h2>
-    <p>Entre na sua conta para salvar o trabalho com segurança no Supabase. Os dados não ficarão dependentes apenas deste navegador.</p>
-    <div class="grid" style="gap:10px">
-      <div class="field"><label>E-mail</label><input id="sbEmail" type="email" placeholder="seu@email.com" autocomplete="email"></div>
-      <div class="field"><label>Senha</label><input id="sbPassword" type="password" placeholder="Mínimo recomendado: 8 caracteres" autocomplete="current-password"></div>
-      <div class="toolbar">
-        <button class="btn primary" onclick="sbLogin()">Entrar</button>
-        <button class="btn" onclick="sbSignup()">Criar conta</button>
-      </div>
-    </div>
-    <div id="sbAuthStatus" class="sb-status">Conectando ao Supabase...</div>
-  </div>
-</div>
-<div id="sbConnection" class="warn" onclick="sbLogout()">Supabase: conectando...</div>
-${document.getElementById('reportPreview').innerHTML}</body></html>`);w.document.close();w.print()}
+function printReport(){renderReport();let w=window.open('','_blank');w.document.write(`<html><head><title>Pré-Auditoria 360 — Relatório</title><style>body{font-family:Arial;padding:30px;line-height:1.5}h1{font-size:22px}</style></head><body>${document.getElementById('reportPreview').innerHTML}</body></html>`);w.document.close();w.print()}
 function exportCSV(){let rows=[['ID','Área','Teste','Status','Risco','Qualidade evidência','Observação']];tests.forEach(t=>{let x=state.tests[t.id],r=calcRisk({...t,...x});rows.push([t.id,t.areaName,t.q,x.status,r.toFixed(2),x.evidence,x.notes])});let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');download('checklist-pre-auditoria-360-v4.csv','text/csv;charset=utf-8;\ufeff',csv)}
 function backupJSON(){download('backup-pre-auditoria-360-v4.json','application/json',JSON.stringify(state,null,2))}
 function download(name,type,text){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
